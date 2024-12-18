@@ -1,0 +1,14 @@
+{
+	"Targets": [
+		{
+			"Name": "OSS",
+			"Path": "C:\\JCH\\U06_OSS\\OSS\\Source\\OSS.Target.cs",
+			"Type": "Game"
+		},
+		{
+			"Name": "OSSEditor",
+			"Path": "C:\\JCH\\U06_OSS\\OSS\\Source\\OSSEditor.Target.cs",
+			"Type": "Editor"
+		}
+	]
+}

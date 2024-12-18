@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"C:\\JCH\\U06_OSS\\OSS\\Source\\OSS\\OSS.Build.cs",
+		"C:\\JCH\\U06_OSS\\OSS\\Source\\OSS.Target.cs",
+		"C:\\JCH\\U06_OSS\\OSS\\Source\\OSSEditor.Target.cs"
+	],
+	"EngineVersion": "4.25.4"
+}
