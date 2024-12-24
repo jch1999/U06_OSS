@@ -1,5 +1,6 @@
 #include "CGameInstance.h"
 #include "UI/CMainMenu.h"
+#include "UI/CPauseMenu.h"
 
 UCGameInstance::UCGameInstance()
 {
@@ -7,6 +8,12 @@ UCGameInstance::UCGameInstance()
 	if (MainMenuClassAsset.Succeeded())
 	{
 		MainMenuClass = MainMenuClassAsset.Class;
+	}
+
+	ConstructorHelpers::FClassFinder<UUserWidget> PauseMenuClassAsset(TEXT("/Game/UI/WB_PauseMenu"));
+	if (PauseMenuClassAsset.Succeeded())
+	{
+		PauseMenuClass = PauseMenuClassAsset.Class;
 	}
 }
 
@@ -35,6 +42,11 @@ void UCGameInstance::Host()
 
 void UCGameInstance::Join(const FString& InAddress)
 {
+	if (MainMenu)
+	{
+		MainMenu->ShutDown();
+	}
+
 	UEngine* Engine = GetEngine();
 	if (!Engine) return;
 
@@ -55,4 +67,23 @@ void UCGameInstance::LoadMainMenu()
 	MainMenu->SetOwningInstance(this);
 
 	MainMenu->StartUp();
+}
+
+void UCGameInstance::LoadPauseMenu()
+{
+	if (!PauseMenuClass) return;
+
+	UCPauseMenu* PauseMenu = CreateWidget<UCPauseMenu>(this, PauseMenuClass);
+	if (!PauseMenu) return;
+
+	PauseMenu->SetOwningInstance(this);
+
+	PauseMenu->StartUp();
+}
+
+void UCGameInstance::OpenMainMenuLevel()
+{
+	APlayerController* PC = GetFirstLocalPlayerController();
+	if (!PC) return;
+	PC->ClientTravel("/Game/Maps/MainMenu", ETravelType::TRAVEL_Absolute);
 }

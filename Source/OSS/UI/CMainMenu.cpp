@@ -1,6 +1,8 @@
 #include "CMainMenu.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
+#include "Components/EditableTextBox.h"
 
 bool UCMainMenu::Initialize()
 {
@@ -13,6 +15,9 @@ bool UCMainMenu::Initialize()
 	if (!JoinButton) return false;
 	JoinButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenJoinMenu);
 
+	if (!QuitButton) return false;
+	QuitButton->OnClicked.AddDynamic(this, &UCMainMenu::QuitGame);
+
 	if (!CancelJoinButton) return false;
 	CancelJoinButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenMainMenu);
 
@@ -20,50 +25,6 @@ bool UCMainMenu::Initialize()
 	ConfirmJoinButton->OnClicked.AddDynamic(this, &UCMainMenu::JoinServer);
 
 	return true;
-}
-
-void UCMainMenu::SetOwningInstance(ICMenuInterface* InInstance)
-{
-	OwningInstance = InInstance;
-}
-
-void UCMainMenu::StartUp()
-{
-	AddToViewport();
-
-	bIsFocusable = true;
-
-
-	FInputModeUIOnly InputMode;
-
-	UWorld* World = GetWorld();
-	if (!World)return;
-
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputMode.SetWidgetToFocus(TakeWidget());
-
-	PC->SetInputMode(InputMode);
-	PC->bShowMouseCursor = true;
-}
-
-void UCMainMenu::ShutDown()
-{
-	RemoveFromParent();
-
-	bIsFocusable = false;
-
-	FInputModeGameOnly InputMode;
-
-	UWorld* World = GetWorld();
-	if (!World)return;
-
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-
-	PC->SetInputMode(InputMode);
-	PC->bShowMouseCursor = true;
 }
 
 void UCMainMenu::HostServer()
@@ -76,10 +37,14 @@ void UCMainMenu::HostServer()
 void UCMainMenu::JoinServer()
 {
 	if (!OwningInstance) return;
-	if (!IPAddressField) return;
+	if (OwningInstance && IPAddressField)
+	{
+		const FString& IPAddress = IPAddressField->GetText().IsEmpty()
+			? FString("127.0.0.1")
+			: IPAddressField->GetText().ToString();
 
-	// TODO. ¤Á¤Æ¤±
-	OwningInstance->Join(IPAddressField->);
+		OwningInstance->Join(IPAddress);
+	}
 }
 
 void UCMainMenu::OpenMainMenu()
@@ -96,4 +61,15 @@ void UCMainMenu::OpenJoinMenu()
 	if (!JoinMenu) return;
 
 	MenuSwitcher->SetActiveWidget(JoinMenu);
+}
+
+void UCMainMenu::QuitGame()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (!PC) return;
+
+	UKismetSystemLibrary::QuitGame(World, PC, EQuitPreference::Quit, false);
 }
