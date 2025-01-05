@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "OnlineSubsystem.h"
 #include "Interfaces/CMenuInterface.h"
 #include "CGameInstance.generated.h"
 
 class UUserWidget;
 class UCMainMenu;
+class FOnlineSessionSearch;
 
 UCLASS()
 class OSS_API UCGameInstance : public UGameInstance, public  ICMenuInterface
@@ -16,8 +18,10 @@ class OSS_API UCGameInstance : public UGameInstance, public  ICMenuInterface
 public:
 	UCGameInstance();
 
+protected:
 	virtual void Init() override;
 
+public:
 	UFUNCTION(Exec)
 	void Host() override;
 
@@ -34,10 +38,18 @@ public:
 	virtual void OpenMainMenuLevel() override;
 
 private:
-	TSubclassOf<UUserWidget> MainMenuClass;
+	void OnCreateSessionComplete(FName InSessionName, bool InSuccess);
+	void OnDestorySessionComplete(FName InSessionName, bool InSuccess);
+	void OnFindSessionComplete(bool InSuccess);
+
+	void CreateSession();
+
+private:
+	TSubclassOf<UUserWidget> MainMenuWidgetClass;
 	UCMainMenu* MainMenu;
 
+	TSubclassOf<UUserWidget> PauseMenuWidgetClass;
 
-	TSubclassOf<UUserWidget> PauseMenuClass;
-
+	IOnlineSessionPtr SessionInterface;
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 };
