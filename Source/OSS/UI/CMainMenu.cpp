@@ -2,7 +2,18 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
-#include "Components/EditableTextBox.h"
+#include "Components/TextBlock.h"
+#include "Components/EditableText.h"
+#include "CServerRow.h"
+
+UCMainMenu::UCMainMenu()
+{
+	ConstructorHelpers::FClassFinder<UUserWidget> ServerRowClass_Asset(TEXT("/Game/UI/WB_ServerRow"));
+	if (ServerRowClass_Asset.Succeeded())
+	{
+		ServerRowClass = ServerRowClass_Asset.Class;
+	}
+}
 
 bool UCMainMenu::Initialize()
 {
@@ -10,7 +21,7 @@ bool UCMainMenu::Initialize()
 	if (!bSuccess) return false;
 
 	if (!HostButton) return false;
-	HostButton->OnClicked.AddDynamic(this, &UCMainMenu::HostServer);
+	HostButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenHostMenu);
 
 	if (!JoinButton) return false;
 	JoinButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenJoinMenu);
@@ -36,14 +47,14 @@ void UCMainMenu::HostServer()
 
 void UCMainMenu::JoinServer()
 {
-	if (!OwningInstance) return;
-	if (OwningInstance && IPAddressField)
+	if (SelectedIndex.IsSet() && OwningInstance)
 	{
-		const FString& IPAddress = IPAddressField->GetText().IsEmpty()
-			? FString("127.0.0.1")
-			: IPAddressField->GetText().ToString();
-
-		OwningInstance->Join(IPAddress);
+		UE_LOG(LogTemp, Warning, TEXT("Selected index is %d."), SelectedIndex.GetValue());
+		OwningInstance->Join(SelectedIndex.GetValue());
+	}
+	else
+	{ 
+		UE_LOG(LogTemp, Warning, TEXT("Seleced index is not set."));
 	}
 }
 
@@ -55,12 +66,21 @@ void UCMainMenu::OpenMainMenu()
 	MenuSwitcher->SetActiveWidget(MainMenu);
 }
 
+void UCMainMenu::OpenHostMenu()
+{
+}
+
 void UCMainMenu::OpenJoinMenu()
 {
 	if (!MenuSwitcher) return;
 	if (!JoinMenu) return;
 
 	MenuSwitcher->SetActiveWidget(JoinMenu);
+
+	if (OwningInstance)
+	{
+		OwningInstance->RefreshServerList();
+	}
 }
 
 void UCMainMenu::QuitGame()
@@ -72,4 +92,42 @@ void UCMainMenu::QuitGame()
 	if (!PC) return;
 
 	UKismetSystemLibrary::QuitGame(World, PC, EQuitPreference::Quit, false);
+}
+
+void UCMainMenu::SetServerList(TArray<FServerData> InServerDatas)
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	if (!ServerList) return;
+	ServerList->ClearChildren();
+
+	uint32 i = 0;
+	for (const FServerData& ServerData : InServerDatas)
+	{
+		UCServerRow* ServerRow = CreateWidget<UCServerRow>(World, ServerRowClass);
+		if (!ServerRow)return;
+
+		ServerRow->ServerName->SetText(FText::FromString(ServerData.Name));
+		ServerRow->HostUser->SetText(FText::FromString(ServerData.HostUserName));
+
+		FString FractionText = FString::Printf(TEXT("%d / %d"), ServerData.CurrentPlayers, ServerData.MaxPlayers);
+		ServerRow->ConnectionFraction->SetText(FText::FromString(FractionText));
+		ServerRow->SetUp(this, i++);
+		ServerList->AddChild(ServerRow);
+	}
+}
+
+void UCMainMenu::SetSelectedIndex(uint32 InIndex)
+{
+	SelectedIndex = InIndex;
+
+	for (int32 i = 0; i < ServerList->GetChildrenCount(); i++)
+	{
+		auto ServerRow = Cast<UCServerRow>(ServerList->GetChildAt(i));
+		if (ServerRow)
+		{
+			ServerRow->bSelected = (SelectedIndex.IsSet() && SelectedIndex.GetValue() == i);
+		}
+	}
 }

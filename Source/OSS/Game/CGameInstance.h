@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "OnlineSubsystem.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "Interfaces/CMenuInterface.h"
 #include "CGameInstance.generated.h"
 
@@ -26,7 +27,7 @@ public:
 	void Host() override;
 
 	UFUNCTION(Exec)
-	void Join(const FString& InAddress) override;
+	void Join(uint32 Index) override;
 
 	UFUNCTION(BlueprintCallable, Exec)
 	void LoadMainMenu();
@@ -36,11 +37,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Exec)
 	virtual void OpenMainMenuLevel() override;
+	void RefreshServerList() override;
 
 private:
 	void OnCreateSessionComplete(FName InSessionName, bool InSuccess);
 	void OnDestorySessionComplete(FName InSessionName, bool InSuccess);
 	void OnFindSessionComplete(bool InSuccess);
+	void OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCompleteResult::Type InResult);
 
 	void CreateSession();
 
