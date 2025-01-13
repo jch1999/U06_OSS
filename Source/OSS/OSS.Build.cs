@@ -19,5 +19,12 @@ public class OSS : ModuleRules
 			"OnlineSubsystem",
 			"OnlineSubsystemSteam"
 		});
+
+		/*if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			string SteamSDKPath = Path.Combine(ModuleDirectory, "../../Plugins/Steam/Steamworks");
+			PublicIncludePaths.Add(Path.Combine(SteamSDKPath, "sdk/public"));
+			PublicAdditionalLibraries.Add(Path.Combine(SteamSDKPath, "sdk/redistributable_bin/win64/steam_api64.lib"));
+		}*/
 	}
 }

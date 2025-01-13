@@ -24,7 +24,7 @@ protected:
 
 public:
 	UFUNCTION(Exec)
-	void Host() override;
+	void Host(FString ServerName) override;
 
 	UFUNCTION(Exec)
 	void Join(uint32 Index) override;
@@ -35,6 +35,8 @@ public:
 	UFUNCTION(BlueprintCallable, Exec)
 	void LoadPauseMenu();
 
+	void  StartSession();
+
 	UFUNCTION(BlueprintCallable, Exec)
 	virtual void OpenMainMenuLevel() override;
 	void RefreshServerList() override;
@@ -44,7 +46,8 @@ private:
 	void OnDestorySessionComplete(FName InSessionName, bool InSuccess);
 	void OnFindSessionComplete(bool InSuccess);
 	void OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCompleteResult::Type InResult);
-
+	void OnNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
+	
 	void CreateSession();
 
 private:
@@ -55,4 +58,6 @@ private:
 
 	IOnlineSessionPtr SessionInterface;
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+
+	FString DesiredServerName;
 };

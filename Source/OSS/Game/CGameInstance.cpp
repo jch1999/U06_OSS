@@ -4,6 +4,7 @@
 #include "UI/CPauseMenu.h"
 
 const static FName SESSION_NAME = TEXT("GameSession");
+const static FName SESSION_SETTINGS_KEY = TEXT("SGA");
 
 UCGameInstance::UCGameInstance()
 {
@@ -38,21 +39,27 @@ void UCGameInstance::Init()
 			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, & UCGameInstance::OnFindSessionComplete);
 			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UCGameInstance::OnJoinSessionComplete);
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Not found subsuystem."));
-		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not found subsuystem."));
+	}
+
+	if (GEngine)
+	{
+		GEngine->OnNetworkFailure().AddUObject(this, &UCGameInstance::OnNetworkFailure);
 	}
 }
 
-void UCGameInstance::Host()
+void UCGameInstance::Host(FString ServerName)
 {
+	DesiredServerName = ServerName;
 	if (SessionInterface.IsValid())
 	{
 		auto AlreadyExsistingSession = SessionInterface->GetNamedSession(SESSION_NAME);
 		if (AlreadyExsistingSession)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s is already exsist. re-create session."));
+			UE_LOG(LogTemp, Warning, TEXT("%s is already exsist. re-create session."), *SESSION_NAME.ToString());
 
 			SessionInterface->DestroySession(SESSION_NAME);
 		}
@@ -105,6 +112,14 @@ void UCGameInstance::LoadPauseMenu()
 	PauseMenu->StartUp();
 }
 
+void UCGameInstance::StartSession()
+{
+	if (SessionInterface.IsValid())
+	{
+		SessionInterface->StartSession(SESSION_NAME);
+	}
+}
+
 void UCGameInstance::OpenMainMenuLevel()
 {
 	APlayerController* PC = GetFirstLocalPlayerController();
@@ -149,7 +164,7 @@ void UCGameInstance::OnCreateSessionComplete(FName InSessionName, bool InSuccess
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	World->ServerTravel("/Game/Maps/Coop?listen");
+	World->ServerTravel("/Game/Maps/Lobby?listen");
 }
 
 void UCGameInstance::OnDestorySessionComplete(FName InSessionName, bool InSuccess)
@@ -171,11 +186,19 @@ void UCGameInstance::OnFindSessionComplete(bool InSuccess)
 			UE_LOG(LogTemp, Display, TEXT("Ping : %d"), SearchResult.PingInMs);
 
 			FServerData ServerData;
-			ServerData.Name = SearchResult.GetSessionIdStr();
 			ServerData.MaxPlayers = SearchResult.Session.SessionSettings.NumPublicConnections;
 			ServerData.CurrentPlayers = ServerData.MaxPlayers - SearchResult.Session.NumOpenPublicConnections;
 			ServerData.HostUserName = SearchResult.Session.OwningUserName;
 
+			FString ServerName;
+			if (SearchResult.Session.SessionSettings.Get(SESSION_SETTINGS_KEY, ServerName))
+			{
+				ServerData.Name = ServerName;
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SESSION(Lobby) Name Not Found"));
+			}
 			ServerNames.Add(ServerData);
 		}
 		MainMenu->SetServerList(ServerNames);
@@ -205,6 +228,13 @@ void UCGameInstance::OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCo
 	PC->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 }
 
+void UCGameInstance::OnNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+{
+	UE_LOG(LogTemp, Error, TEXT("%s"), *ErrorString);
+
+	OpenMainMenuLevel();
+}
+
 void UCGameInstance::CreateSession()
 {
 	if (SessionInterface.IsValid())
@@ -219,10 +249,11 @@ void UCGameInstance::CreateSession()
 		{
 			SessionSettings.bIsLANMatch = false;
 		}
-		SessionSettings.NumPublicConnections = 5;
+		SessionSettings.NumPublicConnections = 4;
 		SessionSettings.bShouldAdvertise = true;
 		SessionSettings.bUsesPresence = true;
-
+		SessionSettings.Set(SESSION_SETTINGS_KEY, DesiredServerName
+			, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
 	}
 }

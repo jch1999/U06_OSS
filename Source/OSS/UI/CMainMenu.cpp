@@ -3,7 +3,7 @@
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/TextBlock.h"
-#include "Components/EditableText.h"
+#include "Components/EditableTextBox.h"
 #include "CServerRow.h"
 
 UCMainMenu::UCMainMenu()
@@ -20,20 +20,29 @@ bool UCMainMenu::Initialize()
 	bool bSuccess = Super::Initialize();
 	if (!bSuccess) return false;
 
+	// Main Menu
 	if (!HostButton) return false;
 	HostButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenHostMenu);
 
 	if (!JoinButton) return false;
 	JoinButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenJoinMenu);
 
-	if (!QuitButton) return false;
+	if (QuitButton == nullptr) return false;
 	QuitButton->OnClicked.AddDynamic(this, &UCMainMenu::QuitGame);
 
+	// Join Menu
 	if (!CancelJoinButton) return false;
 	CancelJoinButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenMainMenu);
 
 	if (!ConfirmJoinButton) return false;
 	ConfirmJoinButton->OnClicked.AddDynamic(this, &UCMainMenu::JoinServer);
+
+	// Host Menu
+	if (CancelHostButton == nullptr) return false;
+	CancelHostButton->OnClicked.AddDynamic(this, &UCMainMenu::OpenMainMenu);
+
+	if (ConfirmHostButton == nullptr) return false;
+	ConfirmHostButton->OnClicked.AddDynamic(this, &UCMainMenu::HostServer);
 
 	return true;
 }
@@ -42,7 +51,9 @@ void UCMainMenu::HostServer()
 {
 	if (!OwningInstance) return;
 
-	OwningInstance->Host();
+	// OwningInstance->Host();
+	FString ServerName = ServerHostName->Text.ToString();
+	OwningInstance->Host(ServerName);
 }
 
 void UCMainMenu::JoinServer()
@@ -68,6 +79,10 @@ void UCMainMenu::OpenMainMenu()
 
 void UCMainMenu::OpenHostMenu()
 {
+	if (!MenuSwitcher) return;
+	if (!MainMenu) return;
+
+	MenuSwitcher->SetActiveWidget(HostMenu);
 }
 
 void UCMainMenu::OpenJoinMenu()
